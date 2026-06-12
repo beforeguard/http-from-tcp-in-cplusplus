@@ -2,6 +2,44 @@
 #include <winsock2.h>
 #pragma comment(lib, "Ws2_32.lib")
 
+void ReadLinesFromSocket(SOCKET clientSocket)
+{
+	std::string buffer;
+
+	while (true)
+	{
+		char temp[1024];
+
+		int bytesReceived = recv(clientSocket, temp, sizeof(temp) - 1, 0);
+
+		if (bytesReceived > 0)
+		{
+			buffer.append(temp, bytesReceived);
+
+			size_t pos;
+			while ((pos = buffer.find('\n')) != std::string::npos)
+			{
+				std::string line = buffer.substr(0, pos);
+				buffer.erase(0, pos + 1);
+
+				std::cout << "Line: " << line << "\n";
+			}
+		}
+		else if (bytesReceived == 0)
+		{
+			// Client closed connection
+			std::cout << "Client disconnected\n";
+			break;
+		}
+		else
+		{
+			// Error
+			std::cerr << "recv failed: " << WSAGetLastError() << "\n";
+			break;
+		}
+	}
+}
+
 int main()
 {
 	WSADATA wsaData;
@@ -36,7 +74,7 @@ int main()
 		return 1;
 	}
 
-	std::cout << "Waiting for client connections on port 8080...\n";
+	std::cout << "Waiting for client connections on port 42069...\n";
 
 	sockaddr_in clientAddr{};
 	int clientAddrLen = sizeof(clientAddr);
@@ -49,6 +87,8 @@ int main()
 		WSACleanup();
 		return 1;
 	}
+
+	ReadLinesFromSocket(clientSocket);
 
 	closesocket(clientSocket);
 	closesocket(listenSocket);
